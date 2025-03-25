@@ -1,1 +1,42 @@
+name: Build and Run unit tests
+on:
+  push:
+    branches:
+      - main
 
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    env:
+      ZIG_USE_CC: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Get Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libc6-dev
+        
+      - name: Zig Setup
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.14.0
+      - name: Generate LibC Path
+        run: |
+          mkdir -p ci
+          zig libc > ci/libc.zig
+             
+      - name: Debug LibC
+        run: |
+          which cc
+          cc --version
+          zig env
+
+      - name: Verify Zig Installation
+        run: zig version
+
+
+      - name: Build and Run tests
+        run: zig build test --summary all
