@@ -27,6 +27,7 @@ jobs:
         run: |
           mkdir -p ci
           zig libc > ci/libc.zig
+          cat ci/libc.zig
              
       - name: Debug LibC
         run: |
@@ -39,4 +40,4 @@ jobs:
 
 
       - name: Build and Run tests
-        run: zig build test --summary all
+        run: zig build test -Duse_custom_libc=true --summary all

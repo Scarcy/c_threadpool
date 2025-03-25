@@ -41,13 +41,13 @@ pub fn build(b: *std.Build) void {
     // for restricting supported target set are available.
     const target = b.standardTargetOptions(.{});
 
+    const use_custom_libc = b.option(bool, "use_custom_libc", "Use custom libc.zig") orelse false;
     // Standard optimization options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
     const c_flags = getCFlags(b, optimize);
-
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
@@ -69,6 +69,8 @@ pub fn build(b: *std.Build) void {
     });
     exe.addIncludePath(b.path("src"));
 
+    exe.linkSystemLibrary("z");
+    exe.linkLibC();
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
@@ -91,6 +93,7 @@ pub fn build(b: *std.Build) void {
         run_cmd.addArgs(args);
     }
 
+    // for each test binary
     // This creates a build step. It will be visible in the `zig build --help` menu,
     // and can be selected like this: `zig build run`
     // This will evaluate the `run` step rather than the default, which is "install".
@@ -100,6 +103,10 @@ pub fn build(b: *std.Build) void {
     const tests = &[_][]const u8{
         "tests/test_threadpool.zig",
     };
+
+    if (use_custom_libc) {
+        exe.setLibCFile(b.path("ci/libc.zig"));
+    }
 
     const test_step = b.step("test", "Run unit tests");
     for (tests) |test_file| {
@@ -118,6 +125,12 @@ pub fn build(b: *std.Build) void {
             .flags = c_flags,
         });
         test_exe.addIncludePath(b.path("src"));
+        test_exe.linkSystemLibrary("z");
+        test_exe.linkLibC();
+
+        if (use_custom_libc) {
+            test_exe.setLibCFile(b.path("ci/libc.zig"));
+        }
 
         const run_test = b.addRunArtifact(test_exe);
 
